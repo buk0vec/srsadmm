@@ -697,7 +697,7 @@ impl ADMMProblem<LassoContext, Vec<LassoSubproblem>> for LassoProblem {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    println!("[Main] lasso.rs starting up...");
+    println!("[Main] LASSO starting up...");
     let mut rng = rand::rngs::SmallRng::seed_from_u64(0);
 
     let mut args = Args::parse();
@@ -780,7 +780,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
 
         println!(
-            "[Main] Matrix A generated in {:?} (improved from element-by-element)",
+            "[Main] Matrix A generated in {:?}",
             a_gen_start.elapsed()
         );
 
@@ -811,7 +811,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             noise_start.elapsed()
         );
 
-        // Matrix-vector operations (these are already optimized in nalgebra)
+        // Compute b = Ax + v
         let b_computation_start = Instant::now();
         let b_full_nalgebra_vec = &a_full_nalgebra * &x_true_nalgebra + v_nalgebra;
         let b_full_nalgebra = na::DMatrix::from_column_slice(m, 1, b_full_nalgebra_vec.as_slice());

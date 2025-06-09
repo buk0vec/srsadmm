@@ -389,7 +389,7 @@ impl ADMMProblem<PGDContext, Vec<PGDSubproblem>> for LassoProblem {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let main_start_time = Instant::now();
-    println!("[Main] Lasso New starting up...");
+    println!("[Main] LASSO PGD starting up...");
     let mut rng = rand::rngs::SmallRng::seed_from_u64(0);
 
     let mut args = Args::parse();

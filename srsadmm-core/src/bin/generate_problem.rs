@@ -108,7 +108,7 @@ async fn main() {
     });
 
     println!(
-        "[Main] Matrix A generated in {:?} (improved from element-by-element)",
+        "[Main] Matrix A generated in {:?}",
         a_gen_start.elapsed()
     );
 

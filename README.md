@@ -8,6 +8,7 @@ This is a Rust implementation of the Alternating Direction Method of Multipliers
 
 - `srsadmm-core` is the core library containing the ADMM algorithm, as well as binaries to solve a LASSO regression problem.
 - `srsadmm-lambda-mm` is the serverless matrix multiplication function.
+- `srsadmm-lasso-factor` is a serverless function that computes (A^T A + lambda I) for a LASSO regression problem (not used for this implementation).
 
 ## Usage
 

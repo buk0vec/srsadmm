@@ -1,7 +1,11 @@
 [package]
 name = "srsadmm-core"
+description = "Core library for the srsadmm project, used to solve consensus ADMM problems with serverless compute."
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+authors = ["Nick Bukovec <bukovec@stanford.edu>"]
+repository = "https://github.com/buk0vec/srsadmm"
 
 [dependencies]
 futures = "0.3.31"

@@ -11,7 +11,7 @@
 //! - Problem formulation
 //! - Timing and logging
 
-/// Lambda-specific operations 
+/// Lambda-specific operations
 pub(crate) mod lambda;
 
 /// Matrix operations

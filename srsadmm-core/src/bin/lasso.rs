@@ -912,9 +912,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
     );
 
+    println!("[Main] Timing summary:");
+    solver.print_timing_summary();
+
+    println!("[Main] Exporting step timings to CSV...");
     let _ = solver.export_step_timings(
         format!(
-            "{}/{}",
+            "{}/{}-timings.csv",
             context.config.storage.local.root, context.config.storage.local.prefix
         )
         .as_str(),

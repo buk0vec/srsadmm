@@ -721,7 +721,9 @@ impl DataMatrixVariable {
             matrix.nrows(),
             matrix.ncols(),
         );
-        let path = var._resource.local_path();
+        let mut path = var._resource.local_path();
+        // path hack, this isn't compressed
+        path.set_extension("");
         write_data_matrix_to_file(&matrix, &path, storage_type).unwrap();
         var
     }

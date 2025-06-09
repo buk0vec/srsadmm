@@ -67,7 +67,7 @@ pub struct Args {
     rho: f32,
 
     /// PGD absolute tolerance
-    #[arg(short, long, default_value_t = 1e-4)]
+    #[arg(short, long, default_value_t = 1e-6)]
     abs_eps: f32,
 
     /// L1 regularization parameter
@@ -98,11 +98,10 @@ pub struct PGDContext {
 #[derive(Clone)]
 pub struct PGDSubproblem {
     // Will contain all the matrix variables for the problem
-    pub a_var: MatrixVariable,
-    pub a_t_var: MatrixVariable,
-    pub b_var: MatrixVariable,
-    pub ax_b_var: MatrixVariable,
+    pub ata_var: MatrixVariable,
+    pub atb_var: MatrixVariable,
     pub grad_var: MatrixVariable,
+    pub grad_var_local: MatrixVariable,
     pub x_var: MatrixVariable,
     pub x_old_var: MatrixVariable,
 }
@@ -159,20 +158,18 @@ impl PGDContext {
 
 impl PGDSubproblem {
     pub fn new(
-        a_var: MatrixVariable,
-        a_t_var: MatrixVariable,
-        b_var: MatrixVariable,
-        ax_b_var: MatrixVariable,
+        ata_var: MatrixVariable,
+        atb_var: MatrixVariable,
         grad_var: MatrixVariable,
+        grad_var_local: MatrixVariable,
         x_var: MatrixVariable,
         x_old_var: MatrixVariable,
     ) -> Self {
         PGDSubproblem {
-            a_var,
-            a_t_var,
-            b_var,
-            ax_b_var,
+            ata_var,
+            atb_var,
             grad_var,
+            grad_var_local,
             x_var,
             x_old_var,
         }
@@ -210,58 +207,45 @@ impl ADMMProblem<PGDContext, Vec<PGDSubproblem>> for LassoProblem {
             .read_chunk(0, context_global.n_samples())
             .unwrap();
         println!("[Main] determining Lipschitz constant...");
-        let l = (&a_matrix.transpose() * &a_matrix).singular_values().max();
+        let ata = &a_matrix.transpose() * &a_matrix;
+        let l = ata.singular_values().max();
         println!("[Main] Lipschitz constant: {}", l);
         let rho = 1.0 / l;
         println!("[Main] Rho (LR): {}", rho);
         context_global.args.rho = rho;
-        let a_var = MatrixVariable::from_matrix(
-            "a".to_string(),
+        let ata_var = MatrixVariable::from_matrix(
+            "ata".to_string(),
             ResourceLocation::S3,
             &config.storage,
-            a_matrix.clone(),
+            ata,
         )
         .await;
 
-        let a_t_var = MatrixVariable::from_matrix(
-            "a_t".to_string(),
-            ResourceLocation::S3,
+        let atb_var = MatrixVariable::from_matrix(
+            "atb".to_string(),
+            ResourceLocation::Local,
             &config.storage,
-            a_matrix.transpose(),
+            a_matrix.transpose() * b_matrix,
         )
         .await;
 
-        let b_var = MatrixVariable::from_matrix(
-            "b".to_string(),
-            ResourceLocation::S3,
-            &config.storage,
-            b_matrix.clone(),
-        )
-        .await;
-
-        let ax_b_var = MatrixVariable::zeros(
-            "ax_b".to_string(),
-            context_global.n_samples(),
-            1,
-            ResourceLocation::S3,
-            &config.storage,
-        )
-        .await;
-
-        let grad_var = MatrixVariable::zeros(
+        let grad_var = MatrixVariable::new(
             "grad".to_string(),
-            context_global.n_features(),
-            1,
             ResourceLocation::S3,
             &config.storage,
-        )
-        .await;
+        );
+
+        let grad_var_local = MatrixVariable::new(
+            "grad-local".to_string(),
+            ResourceLocation::Local,
+            &config.storage,
+        );
 
         let x_var = MatrixVariable::zeros(
             "x".to_string(),
             context_global.n_features(),
             1,
-            ResourceLocation::S3,
+            ResourceLocation::Local,
             &config.storage,
         )
         .await;
@@ -270,13 +254,19 @@ impl ADMMProblem<PGDContext, Vec<PGDSubproblem>> for LassoProblem {
             "x_old".to_string(),
             context_global.n_features(),
             1,
-            ResourceLocation::S3,
+            ResourceLocation::Local,
             &config.storage,
         )
         .await;
 
-        let subproblem =
-            PGDSubproblem::new(a_var, a_t_var, b_var, ax_b_var, grad_var, x_var, x_old_var);
+        let subproblem = PGDSubproblem::new(
+            ata_var,
+            atb_var,
+            grad_var,
+            grad_var_local,
+            x_var,
+            x_old_var,
+        );
         self.context.local.lock().await.push(subproblem);
 
         println!("[LassoProblem] Subproblem created.");
@@ -290,36 +280,26 @@ impl ADMMProblem<PGDContext, Vec<PGDSubproblem>> for LassoProblem {
         let m = context_global.n_samples();
 
         let rho = context_global.rho();
-        let local = self.context.local.lock().await;
+        let mut local = self.context.local.lock().await;
 
         let mut x_var = local[0].x_var.clone();
         let mut x_old_var = local[0].x_old_var.clone();
 
         x_old_var.write(x_var.read().await.unwrap()).await.unwrap();
 
-        let mut a_var = local[0].a_var.clone();
-        let mut a_t_var = local[0].a_t_var.clone();
-        let b_var = local[0].b_var.clone();
-        let mut ax_b_var = local[0].ax_b_var.clone();
+        let mut ata_var = local[0].ata_var.clone();
+        let atb_var = local[0].atb_var.clone();
+        let mut grad_var = local[0].grad_var.clone();
 
-        println!("[LassoProblem] Computing Ax...");
-        // Ax
-        mm(&mut a_var, &mut x_var, &mut ax_b_var).await.unwrap();
 
-        println!("[LassoProblem] Computing Ax - b...");
-        // Ax - b
-        let ax_b = ax_b_var.read().await.unwrap() - b_var.read().await.unwrap();
-
-        ax_b_var.write(ax_b).await.unwrap();
+        println!("[LassoProblem] Computing A^T Ax...");
+        // A^TA x
+        mm(&mut ata_var, &mut x_var, &mut grad_var).await.unwrap();
 
         println!("[LassoProblem] Computing A^T (Ax - b)...");
-        let mut grad_var = local[0].grad_var.clone();
-        // A^T (Ax - b)
-        mm(&mut a_t_var, &mut ax_b_var, &mut grad_var)
-            .await
-            .unwrap();
+        // A^T(Ax - b) = A^T Ax - A^T b
+        let grad = grad_var.read().await.unwrap() - atb_var.read().await.unwrap();
 
-        let grad = grad_var.read().await.unwrap();
 
         println!("[LassoProblem] Computing x_k+1...");
         let x_k_plus_1 = x_var.read().await.unwrap() - rho * &grad;
@@ -390,6 +370,7 @@ impl ADMMProblem<PGDContext, Vec<PGDSubproblem>> for LassoProblem {
         })?;
 
         let abs_eps = context.absolute_tolerance();
+
 
         let eps_primal = abs_eps;
         println!("[LassoProblem] Primal residual: {:.4e}", primal_residual);

@@ -1,8 +1,7 @@
 use crate::{
-    resource::{BINCODE_CONFIG, LocalConfig, MemoryConfig, ResourceLocation, S3Config},
+    resource::{LocalConfig, MemoryConfig, ResourceLocation, S3Config, BINCODE_CONFIG},
     s3::{
-        delete_s3_object, download_file_to_buf, download_file_to_local, upload_file_from_local,
-        upload_vec_to_s3,
+        delete_s3_object, download_file_to_buf, download_file_to_local, log_s3_timing, upload_file_from_local, upload_vec_to_s3
     },
 };
 use async_compression::tokio::bufread::ZstdDecoder;
@@ -229,6 +228,7 @@ where
     T: Serialize + DeserializeOwned + Clone + Send + Sync,
 {
     async fn read(&self, id: &str) -> Result<T, Box<dyn std::error::Error>> {
+        let start_time = std::time::Instant::now();
         let bucket = self.bucket();
         let key = self.key(id);
         let mut stream = download_file_to_buf(&bucket, &key).await?;
@@ -243,6 +243,7 @@ where
             decompressed.extend_from_slice(&buf[..n]);
         }
         let (value, _): (T, _) = bincode::serde::decode_from_slice(&decompressed, BINCODE_CONFIG)?;
+        log_s3_timing(&key, "download_file", start_time.elapsed().as_millis() as f64);
         Ok(value)
     }
 

@@ -5,6 +5,7 @@ use std::time::Instant;
 
 use linfa::prelude::*;
 use linfa_elasticnet::ElasticNet;
+#[cfg(any(feature = "accelerate", feature = "openblas", feature = "netlib"))]
 use nalgebra_lapack::Cholesky;
 use ndarray::{Array, Array1};
 
@@ -133,6 +134,9 @@ pub fn find_p_star_linfa(a: &na::DMatrix<f32>, b: &na::DMatrix<f32>, lambda: f32
 ///
 /// 1. Sherman-Morrison-Woodbury formula for "fat" matrices (m < n/2)
 /// 2. Cholesky decomposition for other cases
+///    - Uses LAPACK's optimized Cholesky when any LAPACK backend feature is enabled
+///      (accelerate, openblas, or netlib)
+///    - Falls back to nalgebra's built-in Cholesky when no LAPACK backend is available
 ///
 /// # Arguments
 ///
@@ -185,12 +189,22 @@ pub fn fast_lasso_inverse(a: &na::DMatrix<f32>, rho: f32) -> na::DMatrix<f32> {
         // (A^TA + rho*I)^-1 = rho^-1*I - rho^-2*A^T*(I+AA^T/rho)^-1*A
         eye_n * rho_inv - (a.transpose() * i_aat_inv * a) * (rho_inv * rho_inv)
     } else {
-        // Cholesky decomposition
+        // Cholesky decomposition (with LAPACK if available, fallback to nalgebra)
         let mut ata = a.transpose() * a;
         ata = ata + eye_n * rho;
-        // let l = ata.cholesky().expect("Failed to compute Cholesky decomposition");
-        let l = Cholesky::new(ata).expect("Failed to compute Cholesky decomposition");
-        l.inverse().expect("Failed to compute inverse")
+        
+        #[cfg(any(feature = "accelerate", feature = "openblas", feature = "netlib"))]
+        {
+            let l = Cholesky::new(ata).expect("Failed to compute Cholesky decomposition");
+            l.inverse().expect("Failed to compute inverse")
+        }
+        
+        #[cfg(not(any(feature = "accelerate", feature = "openblas", feature = "netlib")))]
+        {
+            // Fallback to nalgebra's built-in cholesky when LAPACK is not available
+            let l = ata.cholesky().expect("Failed to compute Cholesky decomposition");
+            l.inverse()
+        }
     };
 }
 
@@ -217,6 +231,9 @@ pub fn fast_lasso_inverse(a: &na::DMatrix<f32>, rho: f32) -> na::DMatrix<f32> {
 /// Like `fast_lasso_inverse`, this function chooses between:
 /// 1. Sherman-Morrison-Woodbury for fat matrices (m < n/2)
 /// 2. Cholesky decomposition for other cases
+///    - Uses LAPACK's optimized Cholesky when any LAPACK backend feature is enabled
+///      (accelerate, openblas, or netlib)
+///    - Falls back to nalgebra's built-in Cholesky when no LAPACK backend is available
 ///
 /// # Example
 ///
@@ -266,8 +283,18 @@ pub fn fused_lasso_factor(
         let ata = a.transpose() * a + eye_n * rho;
         let atb = a.transpose() * b;
 
-        // Cholesky decomposition
-        let l = Cholesky::new(ata).expect("Failed to compute Cholesky decomposition");
-        (l.inverse().expect("Failed to compute inverse"), atb)
+        // Cholesky decomposition (with LAPACK if available, fallback to nalgebra)
+        #[cfg(any(feature = "accelerate", feature = "openblas", feature = "netlib"))]
+        {
+            let l = Cholesky::new(ata).expect("Failed to compute Cholesky decomposition");
+            (l.inverse().expect("Failed to compute inverse"), atb)
+        }
+        
+        #[cfg(not(any(feature = "accelerate", feature = "openblas", feature = "netlib")))]
+        {
+            // Fallback to nalgebra's built-in cholesky when LAPACK is not available
+            let l = ata.cholesky().expect("Failed to compute Cholesky decomposition");
+            (l.inverse(), atb)
+        }
     }
 }

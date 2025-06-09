@@ -7,6 +7,12 @@ license = "MIT"
 authors = ["Nick Bukovec <bukovec@stanford.edu>"]
 repository = "https://github.com/buk0vec/srsadmm"
 
+[features]
+default = []
+accelerate = ["nalgebra-lapack/accelerate"]
+openblas = ["nalgebra-lapack/openblas"]
+netlib = ["nalgebra-lapack/netlib"]
+
 [dependencies]
 futures = "0.3.31"
 nalgebra = { version = "0.33.2", features = ["serde-serialize"] }
@@ -31,9 +37,9 @@ clap = { version = "4.5.39", features = ["derive"] }
 async-compression = { version = "0.4.23", features = ["tokio", "zstd"] }
 
 [dependencies.nalgebra-lapack]
-version = "0.25.0" # Replace the * by the latest version number.
+version = "0.25.0" 
 default-features = false
-features = [ "accelerate" ]
+optional = true
 
 [[bin]]
 name = "generate_problem"

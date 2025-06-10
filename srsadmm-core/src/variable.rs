@@ -367,6 +367,31 @@ impl MatrixVariable {
         .await)
     }
 
+    /// Split the matrix into n_subproblems chunks and apply a function to each chunk.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `n_subproblems` - The number of subproblems to split the matrix into
+    /// * `f` - A function to apply to each chunk. The first argument is the chunk, and the second argument is the index of the subproblem.
+    /// 
+    /// # Returns
+    /// 
+    /// - `Ok(Vec<R>)` - A vector of results, one for each subproblem
+    /// - `Err(LassoError)` - If the matrix is not found
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::MatrixVariable;
+    /// async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let matrix = MatrixVariable::new("my_matrix".to_string(), ResourceLocation::Local, &storage_config);
+    /// let results = matrix.map_rows_by_subproblem(10, |chunk, i| {
+    ///     // Do something with the chunk
+    ///     chunk
+    /// }).await?;
+    /// Ok(())
+    /// }
+    /// ```
     pub async fn map_rows_by_subproblem<R, F>(
         &self,
         n_subproblems: usize,
@@ -398,6 +423,33 @@ impl MatrixVariable {
         Ok(results)
     }
 
+    /// Split both matrices into n_subproblems chunks and apply a function to each pair of chunks.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `var2` - The second matrix to split
+    /// * `n_subproblems` - The number of subproblems to split the matrices into
+    /// * `f` - A function to apply to each pair of chunks. The first argument is the chunk from the first matrix, the second argument is the chunk from the second matrix, and the third argument is the index of the subproblem.
+    /// 
+    /// # Returns
+    /// 
+    /// - `Ok(Vec<R>)` - A vector of results, one for each subproblem
+    /// - `Err(LassoError)` - If the matrices do not have the same number of rows
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::MatrixVariable;
+    /// async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let matrix = MatrixVariable::new("my_matrix".to_string(), ResourceLocation::Local, &storage_config);
+    /// let matrix2 = MatrixVariable::new("my_matrix2".to_string(), ResourceLocation::Local, &storage_config);
+    /// let results = matrix.map_rows_by_subproblem_with(&matrix2, 10, |chunk, chunk2, i| {
+    ///     // Do something with the chunks
+    ///     chunk + chunk2
+    /// }).await?;
+    /// Ok(())
+    /// }
+    /// ```
     pub async fn map_rows_by_subproblem_with<R, F>(
         &self,
         var2: &MatrixVariable,
@@ -442,6 +494,35 @@ impl MatrixVariable {
         Ok(results)
     }
 
+    /// Split both matrices into n_subproblems chunks and apply a function to each pair of chunks. Uses rayon for parallelization.
+    /// 
+    /// NOTE: This method is only available if the `rayon` feature is enabled. In most cases it's probably better to use tokio's spawn_blocking to run the function in a thread pool.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `var2` - The second matrix to split
+    /// * `n_subproblems` - The number of subproblems to split the matrices into
+    /// * `n_threads` - The number of threads to use for parallelization
+    /// 
+    /// # Returns
+    ///  
+    /// - `Ok(Vec<R>)` - A vector of results, one for each subproblem
+    /// - `Err(LassoError)` - If the matrices do not have the same number of rows
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::MatrixVariable;
+    /// async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let matrix = MatrixVariable::new("my_matrix".to_string(), ResourceLocation::Local, &storage_config);
+    /// let matrix2 = MatrixVariable::new("my_matrix2".to_string(), ResourceLocation::Local, &storage_config);
+    /// let results = matrix.map_rows_by_subproblem_with_rayon(&matrix2, 10, 4, |chunk, chunk2, i| {
+    ///     // Do something with the chunks
+    ///     chunk + chunk2
+    /// }).await?;
+    /// Ok(())
+    /// }
+    /// ```
     #[cfg(feature = "rayon")]
     pub async fn map_rows_by_subproblem_with_rayon<R, F>(
         &self,
@@ -505,6 +586,33 @@ impl MatrixVariable {
         Ok(results)
     }
 
+    /// Split both matrices into n_subproblems chunks and apply a function to each pair of chunks. Awaits the function to complete for each chunk.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `var2` - The second matrix to split
+    /// * `n_subproblems` - The number of subproblems to split the matrices into
+    /// * `f` - A function to apply to each pair of chunks. The first argument is the chunk from the first matrix, the second argument is the chunk from the second matrix, and the third argument is the index of the subproblem.
+    /// 
+    /// # Returns
+    /// 
+    /// - `Ok(Vec<R>)` - A vector of results, one for each subproblem
+    /// - `Err(LassoError)` - If the matrices do not have the same number of rows
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::MatrixVariable;
+    /// async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let matrix = MatrixVariable::new("my_matrix".to_string(), ResourceLocation::Local, &storage_config);
+    /// let matrix2 = MatrixVariable::new("my_matrix2".to_string(), ResourceLocation::Local, &storage_config);
+    /// let results = matrix.map_rows_by_subproblem_with_async(&matrix2, 10, |chunk, chunk2, i| {
+    ///     // Do something async with the chunks
+    ///     chunk + chunk2
+    /// }).await?;
+    /// Ok(())
+    /// }
+    /// ```
     pub async fn map_rows_by_subproblem_with_async<R, F>(
         &self,
         var2: &MatrixVariable,
@@ -563,10 +671,10 @@ impl MatrixVariable {
 /// # Example
 ///
 /// ```rust,no_run
-/// # use srsadmm_core::variable::ScalarVariable;
-/// # use srsadmm_core::resource::{ResourceLocation, StorageConfig};
-/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// # let storage_config = StorageConfig::new(/* ... */);
+/// use srsadmm_core::variable::ScalarVariable;
+/// use srsadmm_core::resource::{ResourceLocation, StorageConfig};
+/// async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let storage_config = StorageConfig::new(/* ... */);
 ///
 /// // Create a scalar variable with initial value
 /// let mut scalar = ScalarVariable::from_scalar(
@@ -582,8 +690,8 @@ impl MatrixVariable {
 ///
 /// // Update the value
 /// scalar.write(0.2).await?;
-/// # Ok(())
-/// # }
+/// Ok(())
+/// }
 /// ```
 pub struct ScalarVariable {
     /// Unique identifier for this scalar variable
@@ -642,10 +750,35 @@ impl ScalarVariable {
         variable
     }
 
+    /// Read the current value of the scalar variable.
+    /// 
+    /// # Returns
+    /// 
+    /// The current value of the scalar variable
     pub async fn read(&self) -> Result<f32, Box<dyn std::error::Error>> {
         self._resource.read().await
     }
 
+    /// Read the current value of the scalar variable and cache it to the specified location.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `location` - The location to read the scalar variable from
+    /// 
+    /// # Returns
+    /// 
+    /// The current value of the scalar variable, or an error if the variable is not found.
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::ScalarVariable;
+    /// async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let scalar = ScalarVariable::new("my_scalar".to_string(), ResourceLocation::Local, &storage_config);
+    /// let value = scalar.read_and_cache(ResourceLocation::Memory).await?;
+    /// Ok(())
+    /// }
+    /// ```
     pub async fn read_and_cache(
         &mut self,
         location: ResourceLocation,
@@ -709,7 +842,28 @@ impl DataMatrixVariable {
             ncols,
         }
     }
-
+ 
+    /// Create a new DataMatrixVariable from a matrix.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `id` - Unique identifier for this variable
+    /// * `matrix` - The matrix to store
+    /// * `storage_type` - The storage type to use for the matrix. Matrices can be stored in either columns or rows.
+    /// * `storage_config` - Configuration for all storage backends
+    /// 
+    /// # Returns
+    /// 
+    /// A new `DataMatrixVariable` instance ready for use
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::DataMatrixVariable;
+    /// 
+    /// let matrix = na::DMatrix::<f32>::from_row_slice(100, 100, &[1.0; 10000]);
+    /// let var = DataMatrixVariable::from_matrix("my_matrix".to_string(), matrix, MatrixStorageType::Rows, &storage_config);
+    /// ```
     pub fn from_matrix(
         id: String,
         matrix: na::DMatrix<f32>,
@@ -730,6 +884,25 @@ impl DataMatrixVariable {
         var
     }
 
+    /// Create a new DataMatrixVariable from a problem file.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `id` - Unique identifier for this variable
+    /// * `file_path` - The path to the problem file, generally the output of `generate_problem.rs`
+    /// * `storage_config` - Configuration for all storage backends
+    /// 
+    /// # Returns
+    /// 
+    /// A new `DataMatrixVariable` instance ready for use
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::DataMatrixVariable;
+    /// 
+    /// let var = DataMatrixVariable::from_problem_file("my_matrix".to_string(), &Path::new("my_problem.bin"), &storage_config);
+    /// ```
     pub fn from_problem_file(id: String, file_path: &Path, storage_config: &StorageConfig) -> Self {
         let new_path = Path::new(&storage_config.local.root)
             .join(format!("{}{}", storage_config.local.prefix, id))
@@ -749,6 +922,25 @@ impl DataMatrixVariable {
         var
     }
 
+    /// Read a chunk of the matrix. Chunks are calculated by splitting the matrix into n_subproblems chunks, either by rows or columns.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `chunk_index` - The index of the chunk to read
+    /// * `chunk_size` - The size of the chunk to read
+    /// 
+    /// # Returns
+    /// 
+    /// A matrix containing the chunk of data
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::DataMatrixVariable;
+    /// 
+    /// let var = DataMatrixVariable::from_problem_file("my_matrix".to_string(), &Path::new("my_problem.bin"), &storage_config);
+    /// let chunk = var.read_chunk(0, 100);
+    /// ```
     pub fn read_chunk(
         &self,
         chunk_index: usize,
@@ -803,6 +995,30 @@ impl DataMatrixVariable {
         };
     }
 
+    /// Iterate over the matrix in chunks.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `n_subproblems` - The number of subproblems to split the matrix into
+    /// * `f` - A function to apply to each chunk. The first argument is the chunk, and the second argument is the index of the subproblem.
+    /// 
+    /// # Returns
+    /// 
+    /// - `Ok(Vec<T>)` - A vector of results, one for each subproblem
+    /// - `Err(LassoError)` - If the matrix is not found
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::DataMatrixVariable;
+    /// fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let var = DataMatrixVariable::from_problem_file("my_matrix".to_string(), &Path::new("my_problem.bin"), &storage_config);
+    /// let results = var.iter_subproblems(10, |chunk, i| {
+    ///     // Do something with the chunk
+    ///     chunk
+    /// }).await?;
+    /// Ok(())
+    /// }
     pub fn iter_subproblems<T, F>(
         &self,
         n_subproblems: usize,
@@ -840,6 +1056,31 @@ impl DataMatrixVariable {
         Ok(results)
     }
 
+    /// Iterate over the matrix in chunks, with another matrix.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `var2` - The other matrix to iterate over
+    /// * `n_subproblems` - The number of subproblems to split the matrix into
+    /// * `f` - A function to apply to each chunk. The first argument is the chunk from the first matrix, the second argument is the chunk from the second matrix, and the third argument is the index of the subproblem.
+    /// 
+    /// # Returns
+    /// 
+    /// - `Ok(Vec<T>)` - A vector of results, one for each subproblem
+    /// - `Err(LassoError)` - If the matrices do not have the same number of rows
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::DataMatrixVariable;
+    /// 
+    /// let var = DataMatrixVariable::from_problem_file("my_matrix".to_string(), &Path::new("my_problem.bin"), &storage_config);
+    /// let var2 = DataMatrixVariable::from_problem_file("my_matrix2".to_string(), &Path::new("my_problem2.bin"), &storage_config);
+    /// let results = var.iter_subproblems_with(var2, 10, |chunk, chunk2, i| {
+    ///     // Do something with the chunks
+    ///     (chunk, chunk2)
+    /// });
+    /// ```
     pub fn iter_subproblems_with<T, F>(
         &self,
         var2: &DataMatrixVariable,
@@ -912,6 +1153,32 @@ impl DataMatrixVariable {
         Ok(results)
     }
 
+    /// Iterate over the matrix in chunks. Uses rayon for parallelization.
+    /// 
+    /// NOTE: This method is only available if the `rayon` feature is enabled. In most cases it's probably better to use tokio's spawn_blocking to run the function in a thread pool.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `n_subproblems` - The number of subproblems to split the matrix into
+    /// * `n_threads` - The number of threads to use for parallelization
+    /// * `f` - A function to apply to each chunk. The first argument is the chunk, and the second argument is the index of the subproblem.
+    /// 
+    /// # Returns
+    /// 
+    /// - `Ok(Vec<T>)` - A vector of results, one for each subproblem
+    /// - `Err(LassoError)` - If the matrix is not found
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::DataMatrixVariable;
+    /// 
+    /// let var = DataMatrixVariable::from_problem_file("my_matrix".to_string(), &Path::new("my_problem.bin"), &storage_config);
+    /// let results = var.iter_subproblems_rayon(10, 4, |chunk, i| {
+    ///     // Do something with the chunk
+    ///     chunk
+    /// });
+    /// ```
     #[cfg(feature = "rayon")]
     pub fn iter_subproblems_rayon<T, F>(
         &self,
@@ -957,6 +1224,34 @@ impl DataMatrixVariable {
         Ok(results)
     }
 
+    /// Iterate over the matrix in chunks, with another matrix. Uses rayon for parallelization.
+    /// 
+    /// NOTE: This method is only available if the `rayon` feature is enabled. In most cases it's probably better to use tokio's spawn_blocking to run the function in a thread pool.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `var2` - The other matrix to iterate over
+    /// * `n_subproblems` - The number of subproblems to split the matrix into
+    /// * `n_threads` - The number of threads to use for parallelization
+    /// * `f` - A function to apply to each chunk. The first argument is the chunk from the first matrix, the second argument is the chunk from the second matrix, and the third argument is the index of the subproblem.
+    /// 
+    /// # Returns
+    /// 
+    /// - Ok(Vec<T>) - A vector of results, one for each subproblem
+    /// - Err(LassoError) - If the matrices do not have the same number of rows
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use srsadmm_core::variable::DataMatrixVariable;
+    /// 
+    /// let var = DataMatrixVariable::from_problem_file("my_matrix".to_string(), &Path::new("my_problem.bin"), &storage_config);
+    /// let var2 = DataMatrixVariable::from_problem_file("my_matrix2".to_string(), &Path::new("my_problem2.bin"), &storage_config);
+    /// let results = var.iter_subproblems_with_rayon(var2, 10, 4, |chunk, chunk2, i| {
+    ///     // Do something with the chunks
+    ///     (chunk, chunk2)
+    /// });
+    /// ```
     #[cfg(feature = "rayon")]
     pub fn iter_subproblems_with_rayon<T, F>(
         &self,

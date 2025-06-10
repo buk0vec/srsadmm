@@ -1,11 +1,11 @@
 # srsadmm-core
 
-This is the core library containing the distributed serverless ADMM algorithm, as well as binaries to solve a LASSO regression problem.
+This is the core library containing the distributed serverless ADMM algorithm, as well as binaries to solve a LASSO regression problem. It is meant for usage with the `tokio` runtime and the `srsadmm-lambda-mm` AWS Lambda function.
 
 ## Binaries
 
 - Run the `generate_problem` binary to generate a problem instance.
-- Run the `lasso` binary to solve the problem instance, or `lasso_prox` to solve the problem instance with the proximal gradient method. The binaries will pull your AWS credentials from the default environment variables. To enable a specific backend, run the binary as `cargo run --release --bin <binary> --no-default-features --features <accelerate/netlib/openblas> -- <args>`.
+- Run the `lasso` binary to solve the problem instance, or `lasso_prox` to solve the problem instance with the proximal gradient method. The binaries will pull your AWS credentials from the default environment variables. Please deploy the `srsadmm-lambda-mm` Lambda function to your AWS account first and ensure that it has access to the S3 bucket you are using. To enable a specific backend, run the binary as `cargo run --release --bin <binary> --no-default-features --features <accelerate/netlib/openblas> -- <args>`. 
 
 ## Usage
 

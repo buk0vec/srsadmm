@@ -119,7 +119,7 @@ pub async fn lasso_factor(
     Ok(())
 }
 
-/// Soft thresholding operation for L1 regularization
+/// Soft thresholding operation for L1 regularization. 
 /// Computes sign(x) * max(|x| - threshold, 0)
 /// where threshold = lambda / (rho * n_subproblems)
 pub async fn soft_threshold(

@@ -21,24 +21,6 @@ pub struct MatrixMultiplicationPayload {
     pub out_key: String,
 }
 
-/// Payload for dual variable update Lambda function calls.
-///
-/// This structure contains the S3 object keys needed to perform
-/// the dual update operation: y + x - z in distributed ADMM.
-#[derive(Serialize)]
-pub struct DualUpdatePayload {
-    /// S3 bucket containing the vectors
-    pub bucket: String,
-    /// S3 key for the x vector
-    pub x_key: String,
-    /// S3 key for the z vector  
-    pub z_key: String,
-    /// S3 key for the y vector
-    pub y_key: String,
-    /// S3 key where the result should be stored
-    pub out_key: String,
-}
-
 /// Payload for matrix factorization Lambda function calls.
 ///
 /// This structure contains the information needed to compute

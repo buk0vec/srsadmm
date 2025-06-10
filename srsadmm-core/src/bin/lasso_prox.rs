@@ -600,6 +600,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
     file.flush().unwrap();
 
+    println!("[Main] Timing summary:");
+    solver.print_timing_summary();
+
     println!(
         "[Main] lasso_prox.rs finished. Final z is stored in {}",
         format!("{}/{}-final-z.csv", root, prefix)

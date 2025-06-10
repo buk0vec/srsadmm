@@ -251,10 +251,9 @@ pub fn fast_lasso_inverse(a: &na::DMatrix<f32>, rho: f32) -> na::DMatrix<f32> {
 ///
 /// # Usage in ADMM
 ///
-/// The returned components can be used to efficiently solve systems of the form:
-/// (A^T A + ρI) x = A^T b + ρ(z - y)
-///
-/// by computing: x = factor * (rhs + ρ(z - y))
+/// The returned components can be used to efficiently perform the x-update step in ADMM.
+/// x^{k+1} = (A^T A + ρI)^{-1} (A^T b + ρ(z^{k} - y^{k}))
+/// 
 pub fn fused_lasso_factor(
     a: &na::DMatrix<f32>,
     b: &na::DMatrix<f32>,

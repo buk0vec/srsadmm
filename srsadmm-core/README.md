@@ -1,5 +1,8 @@
 # srsadmm-core
 
+![Crates.io Version](https://img.shields.io/crates/v/srsadmm-core)
+![docs.rs](https://img.shields.io/docsrs/srsadmm-core)
+
 This is the core library containing the distributed serverless ADMM algorithm, as well as binaries to solve a LASSO regression problem. It is meant for usage with the `tokio` runtime and the `srsadmm-lambda-mm` AWS Lambda function.
 
 ## Binaries

@@ -1,5 +1,8 @@
 # srsadmm: Serverless Rust ADMM
 
+![Crates.io Version](https://img.shields.io/crates/v/srsadmm-core)
+![docs.rs](https://img.shields.io/docsrs/srsadmm-core)
+
 ## Overview
 
 This is a Rust implementation of the Alternating Direction Method of Multipliers (ADMM) algorithm. It is designed to be used in a serverless environment, where the heavy computation (generally matrix multiplications) is offloaded to serverless functions.

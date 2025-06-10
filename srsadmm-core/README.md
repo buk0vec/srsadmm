@@ -5,6 +5,10 @@
 
 This is the core library containing the distributed serverless ADMM algorithm, as well as binaries to solve a LASSO regression problem. It is meant for usage with the `tokio` runtime and the `srsadmm-lambda-mm` AWS Lambda function.
 
+## Documentation
+
+[docs.rs](https://docs.rs/srsadmm-core)
+
 ## Binaries
 
 - Run the `generate_problem` binary to generate a problem instance.

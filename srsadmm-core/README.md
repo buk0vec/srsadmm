@@ -5,11 +5,11 @@ This is the core library containing the distributed serverless ADMM algorithm, a
 ## Binaries
 
 - Run the `generate_problem` binary to generate a problem instance.
-- Run the `lasso` binary to solve the problem instance, or `lasso_prox` to solve the problem instance with the proximal gradient method.
+- Run the `lasso` binary to solve the problem instance, or `lasso_prox` to solve the problem instance with the proximal gradient method. The binaries will pull your AWS credentials from the default environment variables. To enable a specific backend, run the binary as `cargo run --release --bin <binary> --no-default-features --features <accelerate/netlib/openblas> -- <args>`.
 
 ## Usage
 
-Alternatively, you can use the `srsadmm-core` library in your own project. While you can technically install it with `cargo add srsadmm-core`, it might be better to directly copy this directory into your own project and use it as a dependency. Take a look at `lasso.rs` and `lasso_prox.rs` for examples of how to use the library.
+Alternatively, you can use the `srsadmm-core` library in your own project. While you can technically install it with `cargo add srsadmm-core`, it might be better to directly copy this directory into your own project and use it as a dependency. Take a look at `lasso.rs` and `lasso_prox.rs` for examples of how to use the library. You can also install with features `accelerate`, `netlib`, or `openblas` to enable different backends.
 
 ### Core ADMM Framework
 

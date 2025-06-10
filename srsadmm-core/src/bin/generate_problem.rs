@@ -13,6 +13,7 @@ use srsadmm_core::{
 };
 use rand::prelude::*;
 use rand_distr::{Normal, StandardNormal};
+#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 use std::time::Instant;
 
@@ -52,6 +53,7 @@ async fn main() {
     let m = args.m;
     let n = args.n;
     let num_initial = args.k;
+    #[cfg(feature = "rayon")]
     let threads = args.threads;
 
     let storage_config = StorageConfig::new(
@@ -75,37 +77,60 @@ async fn main() {
 
     println!("[Main] Generating matrix A...");
 
-    let pool = rayon::ThreadPoolBuilder::new()
-        .num_threads(threads)
-        .build()
-        .expect("Failed to create thread pool");
+    #[cfg(feature = "rayon")]
+    {
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build()
+            .expect("Failed to create thread pool");
 
-    pool.install(|| {
-        // Generate columns in parallel with optimized batch operations
-        let columns: Vec<Vec<f32>> = (0..n)
-            .into_par_iter()
-            .map(|j| {
-                let mut thread_rng = rand::rngs::SmallRng::seed_from_u64(rng_seeds[j]);
+        pool.install(|| {
+            // Generate columns in parallel with optimized batch operations
+            let columns: Vec<Vec<f32>> = (0..n)
+                .into_par_iter()
+                .map(|j| {
+                    let mut thread_rng = rand::rngs::SmallRng::seed_from_u64(rng_seeds[j]);
 
-                // Generate batch of random values for better performance
-                let mut random_values: Vec<f32> =
-                    (0..m).map(|_| thread_rng.sample(StandardNormal)).collect();
+                    // Generate batch of random values for better performance
+                    let mut random_values: Vec<f32> =
+                        (0..m).map(|_| thread_rng.sample(StandardNormal)).collect();
 
-                // Compute norm and normalize in-place for better cache usage
-                let norm = random_values.iter().map(|x| x * x).sum::<f32>().sqrt();
-                if norm > 0.0 {
-                    random_values.iter_mut().for_each(|x| *x /= norm);
-                }
+                    // Compute norm and normalize in-place for better cache usage
+                    let norm = random_values.iter().map(|x| x * x).sum::<f32>().sqrt();
+                    if norm > 0.0 {
+                        random_values.iter_mut().for_each(|x| *x /= norm);
+                    }
 
-                random_values
-            })
-            .collect();
+                    random_values
+                })
+                .collect();
 
-        // Copy columns into matrix using vectorized operations
-        for (j, column_data) in columns.into_iter().enumerate() {
-            a_full_nalgebra.column_mut(j).copy_from_slice(&column_data);
+            // Copy columns into matrix using vectorized operations
+            for (j, column_data) in columns.into_iter().enumerate() {
+                a_full_nalgebra.column_mut(j).copy_from_slice(&column_data);
+            }
+        });
+    }
+
+    #[cfg(not(feature = "rayon"))]
+    {
+        // Sequential fallback when rayon is not available
+        for j in 0..n {
+            let mut thread_rng = rand::rngs::SmallRng::seed_from_u64(rng_seeds[j]);
+
+            // Generate batch of random values for better performance
+            let mut random_values: Vec<f32> =
+                (0..m).map(|_| thread_rng.sample(StandardNormal)).collect();
+
+            // Compute norm and normalize in-place for better cache usage
+            let norm = random_values.iter().map(|x| x * x).sum::<f32>().sqrt();
+            if norm > 0.0 {
+                random_values.iter_mut().for_each(|x| *x /= norm);
+            }
+
+            a_full_nalgebra.column_mut(j).copy_from_slice(&random_values);
         }
-    });
+    }
 
     println!(
         "[Main] Matrix A generated in {:?}",

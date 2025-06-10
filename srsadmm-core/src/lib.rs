@@ -18,7 +18,8 @@
 //! - `accelerate` - Use the `accelerate` backend for matrix operations
 //! - `netlib` - Use the `netlib` backend for matrix operations
 //! - `openblas` - Use the `openblas` backend for matrix operations
-//! 
+//! - `linfa` - Adds a utility function to compute the optimal objective value for Lasso regression using the `linfa` and `linfa-elasticnet` libraries. Useful for testing and validation.
+//! - `rayon` - Adds support for parallelization using the `rayon` library. Really not necessary for the ADMM algorithm, but speeds up the problem instance generation.
 //! 
 
 /// Lambda-specific operations

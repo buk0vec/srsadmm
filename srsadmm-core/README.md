@@ -19,10 +19,14 @@ This is the core library containing the distributed serverless ADMM algorithm, a
 - `accelerate` - Use the `accelerate` backend for matrix operations
 - `netlib` - Use the `netlib` backend for matrix operations
 - `openblas` - Use the `openblas` backend for matrix operations
+- `linfa` - Adds a utility function to compute the optimal objective value for Lasso regression using the `linfa` and `linfa-elasticnet` libraries. Useful for testing and validation.
+- `rayon` - Adds support for parallelization using the `rayon` library. Really not necessary for the ADMM algorithm, but speeds up the problem instance generation.
 
 ## Usage
 
 Alternatively, you can use the `srsadmm-core` library in your own project. While you can technically install it with `cargo add srsadmm-core`, it might be better to directly copy this directory into your own project and use it as a dependency. Take a look at `lasso.rs` and `lasso_prox.rs` for examples of how to use the library. You can also install with features `accelerate`, `netlib`, or `openblas` to enable different backends.
+
+Recommended install: `cargo add srsadmm-core --features openblas,rayon`
 
 ### Core ADMM Framework
 

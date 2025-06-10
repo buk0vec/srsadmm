@@ -9,6 +9,7 @@ use futures::future;
 use nalgebra as na;
 use rand::prelude::*;
 use rand_distr::{Normal, StandardNormal};
+#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 use srsadmm_core::utils::{LassoError, fused_lasso_factor};
 use srsadmm_core::variable::{DataMatrixVariable, MatrixStorageType};
@@ -753,8 +754,31 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
 
         // Use parallel iterator to generate columns
+        #[cfg(feature = "rayon")]
         let columns: Vec<na::DVector<f32>> = (0..n)
             .into_par_iter()
+            .map(|i| {
+                // Each thread gets its own RNG to avoid contention
+                let mut thread_rng = rand::rngs::SmallRng::seed_from_u64(rng_seeds[i]);
+
+                // Generate the entire column at once
+                let mut column = na::DVector::<f32>::zeros(m);
+                for i in 0..m {
+                    column[i] = thread_rng.sample(StandardNormal);
+                }
+
+                // Normalize the column to unit length
+                let norm = column.norm();
+                if norm > 0.0 {
+                    column /= norm;
+                }
+                column
+            })
+            .collect();
+
+        // Sequential fallback when rayon is not available
+        #[cfg(not(feature = "rayon"))]
+        let columns: Vec<na::DVector<f32>> = (0..n)
             .map(|i| {
                 // Each thread gets its own RNG to avoid contention
                 let mut thread_rng = rand::rngs::SmallRng::seed_from_u64(rng_seeds[i]);

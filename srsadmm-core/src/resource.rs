@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::{marker::PhantomData, path::Path};
 
-use enum_map::Enum;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use crate::storage::{LocalStorageBackend, MemoryStorageBackend, S3StorageBackend, StorageBackend};
@@ -136,7 +135,7 @@ impl StorageConfig {
 /// let persistent = ResourceLocation::Local;
 /// let distributed = ResourceLocation::S3;
 /// ```
-#[derive(Clone, Copy, Eq, PartialEq, Enum, Hash)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash)]
 pub enum ResourceLocation {
     /// Local filesystem storage with compression
     Local,

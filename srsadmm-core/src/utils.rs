@@ -1,12 +1,15 @@
 extern crate nalgebra as na;
 use std::error::Error;
 use std::fmt;
+#[cfg(feature = "linfa")]
 use std::time::Instant;
-
+#[cfg(feature = "linfa")]
 use linfa::prelude::*;
+#[cfg(feature = "linfa")]
 use linfa_elasticnet::ElasticNet;
 #[cfg(any(feature = "accelerate", feature = "openblas", feature = "netlib"))]
 use nalgebra_lapack::Cholesky;
+#[cfg(feature = "linfa")]
 use ndarray::{Array, Array1};
 
 /// Custom error type for Lasso and ADMM-related operations.
@@ -61,6 +64,7 @@ impl fmt::Display for LassoError {
 
 impl Error for LassoError {}
 
+#[cfg(feature = "linfa")]
 /// Computes the optimal objective value for Lasso regression using the linfa library.
 ///
 /// This function solves the Lasso optimization problem using a third-party solver

@@ -5,6 +5,7 @@ use crate::{
     utils::LassoError,
 };
 use memmap2::Mmap;
+#[cfg(feature = "rayon")]
 use rayon::prelude::*;
 use std::{fs::File, io::BufWriter, io::Write, path::Path};
 
@@ -441,6 +442,7 @@ impl MatrixVariable {
         Ok(results)
     }
 
+    #[cfg(feature = "rayon")]
     pub async fn map_rows_by_subproblem_with_rayon<R, F>(
         &self,
         var2: &MatrixVariable,
@@ -910,6 +912,7 @@ impl DataMatrixVariable {
         Ok(results)
     }
 
+    #[cfg(feature = "rayon")]
     pub fn iter_subproblems_rayon<T, F>(
         &self,
         n_subproblems: usize,
@@ -954,6 +957,7 @@ impl DataMatrixVariable {
         Ok(results)
     }
 
+    #[cfg(feature = "rayon")]
     pub fn iter_subproblems_with_rayon<T, F>(
         &self,
         var2: &DataMatrixVariable,
